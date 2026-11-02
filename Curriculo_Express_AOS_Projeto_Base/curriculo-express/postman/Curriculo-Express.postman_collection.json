@@ -1,0 +1,820 @@
+{
+  "info": {
+    "_postman_id": "cf5f4ea2-b7be-4c9e-93dd-0af16bf9e90e",
+    "name": "Currículo Express — API REST (NeonDB + Vercel)",
+    "description": "Coleção para avaliação da disciplina AOS. ATENÇÃO: troque baseUrl pela URL REAL gerada no Vercel. Primeiro execute Listar currículos para salvar pessoaId, e então os CRUDs. O projeto não é publicado automaticamente.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 — Saúde e currículos (com relacionamentos)",
+      "item": [
+        {
+          "name": "01. Verificar conexão com NeonDB",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/health"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"API e Banco online\", () => { pm.response.to.have.status(200); pm.expect(pm.response.json().banco).to.eql(\"conectado\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02. Listar currículos (guarda pessoaId)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/curriculos"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Existem pelo menos 2 currículos\", () => { pm.response.to.have.status(200); pm.expect(pm.response.json().length).to.be.at.least(2); });",
+                  "if (pm.response.code === 200) {",
+                  "  const pessoas = pm.response.json();",
+                  "  if (pessoas[0]?.id) pm.collectionVariables.set(\"pessoaId\", pessoas[0].id);",
+                  "  if (pessoas[1]?.id) pm.collectionVariables.set(\"pessoa2Id\", pessoas[1].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "03. Consultar currículo completo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/pessoas/{{pessoaId}}/curriculo"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Currículo com relações 1:N\", () => { pm.response.to.have.status(200); const cv=pm.response.json(); [\"formacoes\",\"experiencias\",\"projetos\",\"habilidades\"].forEach(k=>pm.expect(cv[k],k).to.be.an(\"array\")); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "04. Selecionar segunda pessoa (guarda pessoaId)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/pessoas/{{pessoa2Id}}/curriculo",
+            "description": "Ao executar, a variável pessoaId passa a apontar para a segunda pessoa; abra Variables para conferir."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Segunda pessoa encontrada\", () => pm.response.to.have.status(200));",
+                  "if(pm.response.code===200) pm.collectionVariables.set(\"pessoaId\",pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 — Pessoas",
+      "item": [
+        {
+          "name": "Listar pessoas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/pessoas"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Criar pessoa de teste (guarda pessoaTesteId)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/pessoas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Pessoa de Teste Postman\",\n  \"email\": \"teste.{{$timestamp}}@example.com\",\n  \"cidade\": \"Recife - PE\",\n  \"resumo\": \"Registro temporário para testar o CRUD.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Retornou 201 e um UUID\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  pm.expect(pm.response.json()).to.have.property(\"id\");",
+                  "});",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"pessoaTesteId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar pessoa por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/pessoas/{{pessoaTesteId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar pessoa de teste",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/pessoas/{{pessoaTesteId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cidade\": \"Olinda - PE\",\n  \"resumo\": \"Currículo atualizado com PUT.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Atualização 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Excluir pessoa de teste",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/pessoas/{{pessoaTesteId}}",
+            "description": "Exclua somente os registros temporários criados pelo Postman; não exclua os currículos de demonstração."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Exclusão confirmada (204)\", () => pm.response.to.have.status(204));",
+                  "if (pm.response.code === 204) pm.collectionVariables.unset(\"pessoaTesteId\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 — Formações",
+      "item": [
+        {
+          "name": "Listar formacoes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/formacoes"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Criar formação de teste (guarda formacaoId)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/formacoes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pessoaId\": \"{{pessoaId}}\",\n  \"instituicao\": \"Faculdade de Testes\",\n  \"curso\": \"Sistemas de Informação\",\n  \"nivel\": \"Graduação\",\n  \"inicio\": \"2023-02-01\",\n  \"fim\": null,\n  \"concluido\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Retornou 201 e um UUID\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  pm.expect(pm.response.json()).to.have.property(\"id\");",
+                  "});",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"formacaoId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar formação por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/formacoes/{{formacaoId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar formação de teste",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/formacoes/{{formacaoId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"curso\": \"Engenharia de Software\",\n  \"concluido\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Atualização 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Excluir formação de teste",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/formacoes/{{formacaoId}}",
+            "description": "Exclua somente os registros temporários criados pelo Postman; não exclua os currículos de demonstração."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Exclusão confirmada (204)\", () => pm.response.to.have.status(204));",
+                  "if (pm.response.code === 204) pm.collectionVariables.unset(\"formacaoId\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 — Experiências",
+      "item": [
+        {
+          "name": "Listar experiencias",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/experiencias"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Criar experiência de teste (guarda experienciaId)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/experiencias",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pessoaId\": \"{{pessoaId}}\",\n  \"empresa\": \"Empresa de Demonstração\",\n  \"cargo\": \"Assistente de Desenvolvimento\",\n  \"descricao\": \"Desenvolvimento de sistemas e testes da API.\",\n  \"inicio\": \"2025-01-02\",\n  \"atual\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Retornou 201 e um UUID\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  pm.expect(pm.response.json()).to.have.property(\"id\");",
+                  "});",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"experienciaId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar experiência por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/experiencias/{{experienciaId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar experiência de teste",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/experiencias/{{experienciaId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cargo\": \"Desenvolvedor Back-end\",\n  \"descricao\": \"API Express e banco PostgreSQL.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Atualização 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Excluir experiência de teste",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/experiencias/{{experienciaId}}",
+            "description": "Exclua somente os registros temporários criados pelo Postman; não exclua os currículos de demonstração."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Exclusão confirmada (204)\", () => pm.response.to.have.status(204));",
+                  "if (pm.response.code === 204) pm.collectionVariables.unset(\"experienciaId\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 — Projetos",
+      "item": [
+        {
+          "name": "Listar projetos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projetos"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Criar projeto de teste (guarda projetoId)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projetos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pessoaId\": \"{{pessoaId}}\",\n  \"titulo\": \"Projeto Demonstrativo via Postman\",\n  \"descricao\": \"Projeto vinculado a uma pessoa.\",\n  \"tecnologias\": \"Node.js, PostgreSQL\",\n  \"link\": \"https://example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Retornou 201 e um UUID\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  pm.expect(pm.response.json()).to.have.property(\"id\");",
+                  "});",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"projetoId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar projeto por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/projetos/{{projetoId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar projeto de teste",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/projetos/{{projetoId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"titulo\": \"Projeto REST Atualizado\",\n  \"tecnologias\": \"Express, Sequelize, PostgreSQL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Atualização 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Excluir projeto de teste",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/projetos/{{projetoId}}",
+            "description": "Exclua somente os registros temporários criados pelo Postman; não exclua os currículos de demonstração."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Exclusão confirmada (204)\", () => pm.response.to.have.status(204));",
+                  "if (pm.response.code === 204) pm.collectionVariables.unset(\"projetoId\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 — Habilidades",
+      "item": [
+        {
+          "name": "Listar habilidades",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/habilidades"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Criar habilidade de teste (guarda habilidadeId)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/habilidades",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pessoaId\": \"{{pessoaId}}\",\n  \"nome\": \"SQL de Teste\",\n  \"nivel\": \"Básico\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Retornou 201 e um UUID\", function () {",
+                  "  pm.response.to.have.status(201);",
+                  "  pm.expect(pm.response.json()).to.have.property(\"id\");",
+                  "});",
+                  "if (pm.response.code === 201) pm.collectionVariables.set(\"habilidadeId\", pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Buscar habilidade por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/habilidades/{{habilidadeId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"GET 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Editar habilidade de teste",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": "{{baseUrl}}/api/habilidades/{{habilidadeId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nivel\": \"Intermediário\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Atualização 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Excluir habilidade de teste",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/habilidades/{{habilidadeId}}",
+            "description": "Exclua somente os registros temporários criados pelo Postman; não exclua os currículos de demonstração."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Exclusão confirmada (204)\", () => pm.response.to.have.status(204));",
+                  "if (pm.response.code === 204) pm.collectionVariables.unset(\"habilidadeId\");"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://SEU-PROJETO.vercel.app",
+      "type": "string"
+    },
+    {
+      "key": "pessoaId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pessoa2Id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "pessoaTesteId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "formacaoId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "experienciaId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "projetoId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "habilidadeId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
