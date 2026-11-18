@@ -6,6 +6,7 @@ import criarFormacao from "./formacao.js";
 import criarExperiencia from "./experiencia.js";
 import criarProjeto from "./projeto.js";
 import criarHabilidade from "./habilidade.js";
+import criarTarefa from "./tarefa.js";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL ausente. Crie um arquivo .env com a conexão do NeonDB.");
@@ -24,6 +25,7 @@ const models = {
   Experiencia: criarExperiencia(sequelize, Sequelize),
   Projeto: criarProjeto(sequelize, Sequelize),
   Habilidade: criarHabilidade(sequelize, Sequelize),
+  Tarefa: criarTarefa(sequelize, Sequelize),
 };
 
 for (const Model of Object.values(models)) {

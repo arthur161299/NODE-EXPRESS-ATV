@@ -1,10 +1,21 @@
-
+# Dependências
 node_modules/
+**/node_modules/
+
+# Variáveis de ambiente
 .env
 .env.*
+!.env.sample
 !.env.example
 
-node_modules/
-.env
-.env.*
-!.env.example
+# Logs
+*.log
+npm-debug.log*
+
+# Arquivos gerados
+dist/
+coverage/
+
+# Configurações do editor
+.vscode/
+.idea/
